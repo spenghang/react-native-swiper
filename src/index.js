@@ -225,15 +225,16 @@ export default class extends Component {
     if (this.props.autoplay && !prevProps.autoplay) {
       this.autoplay()
     }
-    if (this.props.children !== prevProps.children) {
-      if (this.props.loadMinimal && Platform.OS === 'ios') {
-        this.setState({ ...this.props, index: this.state.index })
-      } else {
-        this.setState(
-          this.initState({ ...this.props, index: this.state.index }, true)
-        )
-      }
-    }
+    // if (this.props.children !== prevProps.children) {
+    //     console.log('componentDidUpdate-----', this.props.children, prevProps.children)
+    //     if (this.props.loadMinimal && Platform.OS === 'ios') {
+    //         this.setState({ ...this.props, index: this.state.index })
+    //     } else {
+    //         this.setState(
+    //             this.initState({ ...this.props, index: this.state.index }, true)
+    //         )
+    //     }
+    // }
   }
 
   initState(props, updateIndex = false) {
@@ -284,7 +285,7 @@ export default class extends Component {
     }
 
     initState.offset[initState.dir] =
-      initState.dir === 'y' ? height * props.index : width * props.index
+      initState.dir === 'y' ? initState.height * props.index : initState.width * props.index
 
     this.internals = {
       ...this.internals,
@@ -321,8 +322,11 @@ export default class extends Component {
     // related to https://github.com/leecade/react-native-swiper/issues/570
     // contentOffset is not working in react 0.48.x so we need to use scrollTo
     // to emulate offset.
-    if (this.initialRender && this.state.total > 1) {
+    if (this.state.total > 1) {
       this.scrollView.scrollTo({ ...offset, animated: false })
+    }
+
+    if (this.initialRender) {
       this.initialRender = false
     }
 
@@ -331,38 +335,28 @@ export default class extends Component {
 
   loopJump = () => {
     if (!this.state.loopJump) return
-    const i = this.state.index + (this.props.loop ? 1 : 0)
     const scrollView = this.scrollView
-    this.loopJumpTimer = setTimeout(
-      () => {
-        if (scrollView.setPageWithoutAnimation) {
-          scrollView.setPageWithoutAnimation(i)
-        } else {
-          if (this.state.index === 0) {
-            scrollView.scrollTo(
-              this.props.horizontal === false
-                ? { x: 0, y: this.state.height, animated: false }
-                : { x: this.state.width, y: 0, animated: false }
-            )
-          } else if (this.state.index === this.state.total - 1) {
-            this.props.horizontal === false
-              ? this.scrollView.scrollTo({
-                  x: 0,
-                  y: this.state.height * this.state.total,
-                  animated: false
-                })
-              : this.scrollView.scrollTo({
-                  x: this.state.width * this.state.total,
-                  y: 0,
-                  animated: false
-                })
-          }
-        }
-      },
-      // Important Parameter
-      // ViewPager 50ms, ScrollView 300ms
-      scrollView.setPageWithoutAnimation ? 50 : 300
-    )
+    this.loopJumpTimer = setTimeout(() => {
+      if (this.state.index === 0) {
+        scrollView.scrollTo(
+          this.props.horizontal === false
+            ? { x: 0, y: this.state.height, animated: false }
+            : { x: this.state.width, y: 0, animated: false }
+        )
+      } else if (this.state.index === this.state.total - 1) {
+        this.props.horizontal === false
+          ? this.scrollView.scrollTo({
+            x: 0,
+            y: this.state.height * this.state.total,
+            animated: false
+          })
+          : this.scrollView.scrollTo({
+            x: this.state.width * this.state.total,
+            y: 0,
+            animated: false
+          })
+      }
+    }, 300)
   }
 
   /**
@@ -399,7 +393,7 @@ export default class extends Component {
     // update scroll state
     this.internals.isScrolling = true
     this.props.onScrollBeginDrag &&
-      this.props.onScrollBeginDrag(e, this.fullState(), this)
+    this.props.onScrollBeginDrag(e, this.fullState(), this)
   }
 
   /**
@@ -429,7 +423,7 @@ export default class extends Component {
     })
     // if `onMomentumScrollEnd` registered will be called here
     this.props.onMomentumScrollEnd &&
-      this.props.onMomentumScrollEnd(e, this.fullState(), this)
+    this.props.onMomentumScrollEnd(e, this.fullState(), this)
   }
 
   /*
@@ -464,12 +458,13 @@ export default class extends Component {
     if (!this.internals.offset)
       // Android not setting this onLayout first? https://github.com/leecade/react-native-swiper/issues/582
       this.internals.offset = {}
-    const diff = offset[dir] - this.internals.offset[dir]
+    const diff = offset[dir] - (this.internals.offset[dir] || 0)
     const step = dir === 'x' ? state.width : state.height
     let loopJump = false
 
     // Do nothing if offset no change.
-    if (!diff) return
+    let dm = Math.abs(diff % step)
+    if (!diff || (dm > 10 && dm < step - 10)) return
 
     // Note: if touch very very quickly and continuous,
     // the variation of `index` more than 1.
@@ -840,7 +835,7 @@ export default class extends Component {
           } else {
             return (
               <View style={pageStyleLoading} key={i}>
-                {loadMinimalLoader ? loadMinimalLoader : <ActivityIndicator />}
+                {loadMinimalLoader ? loadMinimalLoader : <ActivityIndicator/>}
               </View>
             )
           }
