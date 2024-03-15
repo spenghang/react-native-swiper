@@ -226,7 +226,7 @@ export default class extends Component {
       this.autoplay()
     }
     if (this.props.children !== prevProps.children) {
-        console.log('componentDidUpdate-----', this.props.children, prevProps.children)
+        // console.log('componentDidUpdate-----', this.props.children, prevProps.children)
         if (this.props.loadMinimal && Platform.OS === 'ios') {
             this.setState({ ...this.props, index: this.state.index })
         } else {
